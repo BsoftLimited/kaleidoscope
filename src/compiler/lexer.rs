@@ -1,3 +1,8 @@
+
+
+use std::collections::HashMap;
+
+
 use crate::utils::Character;
 
 pub enum Token{
@@ -8,8 +13,8 @@ pub enum Token{
     OpenParenthesis,
     CloseParenthesis,
     Comma,
+    Operator(char),
     EndOfFile,
-    None,
 }
 
 pub struct Lexer{ index: usize, data: String }
