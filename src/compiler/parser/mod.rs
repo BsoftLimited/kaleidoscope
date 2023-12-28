@@ -64,7 +64,7 @@ impl Parser {
             }
 
             // Okay, we know this is a binop.
-            let bin_op = self.current.as_ref().clone();
+            let bin_op = self.current.clone();
             self.get_next_token(); // eat binop
 
             // Parse the primary expression after the binary operator.
@@ -84,7 +84,7 @@ impl Parser {
             }
 
             // Merge LHS/RHS.
-            lhs = ExprAST::Binary(Box::new(lhs), bin_op.as_deref().unwrap(), Box::new(rhs.unwrap()));
+            lhs = ExprAST::Binary{ lhs:Box::new(lhs), op: bin_op.unwrap().clone(), rhs: Box::new(rhs.unwrap())} ;
         }
     }
 
@@ -141,7 +141,7 @@ impl Parser {
         // Eat the ')'.
         self.get_next_token();
       
-        return Some(ExprAST::Call { callee: name, args: args });
+        return Some(ExprAST::Call { callee: name, args });
     }
 
     pub fn parse_primary(&mut self) ->Option<ExprAST> {

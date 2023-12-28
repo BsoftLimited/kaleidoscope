@@ -1,10 +1,6 @@
-
-
-use std::collections::HashMap;
-
-
 use crate::utils::Character;
 
+#[derive(Debug, Clone)]
 pub enum Token{
     Number(f32),
     Identifier(String),
