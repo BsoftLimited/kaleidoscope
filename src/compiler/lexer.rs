@@ -9,6 +9,7 @@ pub enum Token{
     OpenParenthesis,
     CloseParenthesis,
     Comma,
+    SemiColons,
     Operator(char),
     EndOfFile,
 }
@@ -27,18 +28,47 @@ impl Lexer {
                     let current = Character::new(current_char);
                     if !current.is_whitespace(){
                         match current.unwrap(){
-                            '(' => return Token::OpenParenthesis,
-                            ')' => return Token::CloseParenthesis,
-                            ',' => return Token::Comma,
+                            '(' => {
+                                self.index += 1;
+                                return Token::OpenParenthesis;
+                            },
+                            ')' => {
+                                self.index += 1;
+                                return Token::CloseParenthesis;
+                            },
+                            ',' => {
+                                self.index += 1;
+                                return Token::Comma;
+                            },
+                            ';' => {
+                                self.index += 1;
+                                return Token::SemiColons;
+                            },
+                            '*' => {
+                                self.index += 1;
+                                return Token::Operator('*');
+                            },
+                            '-' => {
+                                self.index += 1;
+                                return Token::Operator('-');
+                            },
+                            '+' => {
+                                self.index += 1;
+                                return Token::Operator('+');
+                            },
+                            '<' => {
+                                self.index += 1;
+                                return Token::Operator('<');
+                            },
                             _ => return self.init_token()
                         }
                     }
+                    self.index += 1;
                 },
                 None=>{
                     return Token::EndOfFile;
                 }
-            }
-            self.index += 1;   
+            }  
         }
     }
 
@@ -84,6 +114,14 @@ impl Lexer {
                 break;
             }
             self.index += 1;
+        }
+
+        if init == "def"{
+            return Token::Def;
+        }
+
+        if init == "extern"{
+            return  Token::Extern;
         }
         return Token::Identifier(init);
     }

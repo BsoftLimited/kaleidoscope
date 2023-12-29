@@ -11,20 +11,15 @@ impl Character{
     }
     
     pub fn is_numeric(&self)->bool{
+        if self.value == '.'{
+            return true;
+        }
         let value = self.value as u32;
         return value >= 48 && value <= 57;
     }
     
     pub fn is_alphanumeric(&self)->bool{
         return self.is_alphabetic() || self.is_numeric();
-    }
-    
-    pub fn is_hexdigit(&self)->bool{
-        if self.is_numeric() || self.value == 'x'{
-            return true;
-        }
-        let value = self.value as u32;
-        return (value >= 65 && value <= 70) || (value >= 97 && value <= 102);
     }
 
     pub fn is_whitespace(&self)->bool{
