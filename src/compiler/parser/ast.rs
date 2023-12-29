@@ -8,5 +8,5 @@ pub enum ExprAST {
     Binary{ lhs: Box<ExprAST>, op:String, rhs: Box<ExprAST> },
     Call{ callee: String, args: Vec<ExprAST> },
     Fucntion{ prototype: Box<Prototype>, body: Box<ExprAST> },
-    None
+    Assignment{ variable: String, exp: Box<ExprAST> },
 }

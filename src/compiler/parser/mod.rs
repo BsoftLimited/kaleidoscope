@@ -52,7 +52,7 @@ impl Parser{
         init
     }
 
-    pub fn get_next(&mut self)->ExprAST{
+    pub fn get_next(&mut self)->Option<ExprAST>{
         while !matches!(self.current.tokentype(), TokenType::None){
             if let TokenType::Name(name) = self.current.tokentype(){
                 match name.as_str(){
@@ -64,26 +64,27 @@ impl Parser{
             let token = self.pop_token();
             self.errors.push(format!("Unexpected token: {:?}", token));
         }
-        return ExprAST::None;
+        return None;
     }
 
-    fn get(&mut self)->ExprAST{
+    fn get(&mut self)-> Option<ExprAST>{
         let init = self.pop_token();
+        let mut output: Option<ExprAST> = None;
         if let TokenType::OpenBracket = self.current.tokentype(){
             self.pop_token();
-            return ExprAST::Call{ callee: Parser::unwrap(&init), args: self.get_argument_passing() };
+            output = Some(ExprAST::Call{ callee: Parser::unwrap(&init), args: self.get_argument_passing() });
         }else if let TokenType::Equal = self.current.tokentype(){
             self.pop_token();
-            return Expression::Assignment{ variable: Parser::unwrap(&init), exp: Box::new(self.make_conditional()) };
+            output = Some(ExprAST::Assignment{ variable: Parser::unwrap(&init), exp: Box::new(self.make_conditional()) });
         }
 
         if !matches!(self.current.tokentype(), TokenType::SemiColon){
             self.errors.push(format!("expected a semi colon ';'"));
         }
-        return Expression::None;
+        return output;
     }
 
-    fn initilaization(&mut self)->ExprAST{
+    fn initilaization(&mut self)->Option<ExprAST>{
         let mut name: Option<String> = None;
         let mut data_type: Option<String> = None;
         let mut step: u8 = 0;
@@ -122,7 +123,7 @@ impl Parser{
         return Expression::None;
     }
 
-    fn get_argument_definition(&mut self)->ExprAST{
+    fn get_argument_definition(&mut self)->Option<ExprAST>{
         let name: String = Parser::unwrap(&self.current);
         let mut dt: Option<String> = None;
         let mut value: Option<Box<Expression>> = None;
@@ -151,7 +152,7 @@ impl Parser{
         return Expression::None;
     }
 
-    fn function_declaraton(&mut self)->ExprAST{
+    fn function_declaraton(&mut self)->Option<ExprAST>{
         let mut args: Vec<Expression> = Vec::new();
         let mut body: Vec<Expression> = Vec::new();
         let mut name: Option<String> = None;
@@ -200,9 +201,9 @@ impl Parser{
         loop{
             if matches!(self.current.tokentype(), TokenType::Name(_)) || matches!(self.current.tokentype(), TokenType::Colon) || matches!(self.current.tokentype(), TokenType::Coma){
                 let token = self.pop_token();
-                if let TokenType::SemiColon = token.tokentype(){
+                if let TokenType::Colon = token.tokentype(){
                     if name.is_some() && step == 1{
-                        args.push( Expression::ArgumentPassing{ name: name.as_ref().unwrap().clone(), value: Box::new(self.make_conditional())});
+                        //args.push( ExprAST::ArgumentPassing{ name: name.as_ref().unwrap().clone(), value: Box::new(self.make_conditional())});
                         step = 2;
                     }else{
                         self.errors.push(format!("Unexpected column expecting an argument"));
@@ -216,9 +217,13 @@ impl Parser{
                     name = None;
                     step = 0;
                 }else if let TokenType::Name(value) = token.tokentype(){
-                    if name.is_some() && step == 1{
-                        self.errors.push(format!("Unexpected token: {:?} expecting a column(:)", &name));
-                    }else if step == 0{
+                    if name.is_some() {
+                        if step == 2 && is_datatype(value){
+
+                        }if step == 1{
+                            self.errors.push(format!("Unexpected token: {:?} expecting a column(:)", &name));
+                        }
+                    }else if step == 0 {
                         if is_keyword(value.as_str()){
                             self.errors.push(format!("the word: {} is a reserve word", value));
                         }else{
@@ -238,41 +243,50 @@ impl Parser{
         return args;
     }
 
-    pub fn make_conditional(&mut self)->ExprAST{
+    pub fn make_conditional(&mut self)->Option<ExprAST>{
         let left = self.make_term();
         if let TokenType::Conditional(op) = self.current.tokentype().clone(){
             self.next_token();
-            return ExprAST::Binary{ lhs: Box::new(left), op: op.chars().nth(0).unwrap(), rhs: Box::new(self.make_conditional()) }
+            let rhs = self.make_conditional();
+            if rhs.is_some(){
+                return Some(ExprAST::Binary{ lhs: Box::new(left.unwrap()), op, rhs: Box::new(rhs.unwrap()) });
+            }
         }
         return left;
     }
 
-    pub fn make_term(&mut self)->ExprAST{
+    pub fn make_term(&mut self)->Option<ExprAST>{
         let left = self.make_factor();
         if let TokenType::Term(op) = self.current.tokentype().clone(){
             self.next_token();
-            return ExprAST::Binary{ lhs: Box::new(left), op, rhs: Box::new(self.make_conditional()) }
+            let rhs = self.make_conditional();
+            if rhs.is_some(){
+                return Some(ExprAST::Binary{ lhs: Box::new(left.unwrap()), op: String::from(op), rhs: Box::new(rhs.unwrap()) });
+            }
         }
         return left;
     }
 
-    pub fn make_factor(&mut self)->ExprAST{
+    pub fn make_factor(&mut self)->Option<ExprAST>{
         let left = self.make_value();
         if let TokenType::Factor(op) = self.current.tokentype().clone(){
             self.next_token();
-            return ExprAST::Binary{ lhs: Box::new(left), op, rhs: Box::new(self.make_conditional()) }
+            let rhs = self.make_conditional();
+            if rhs.is_some(){
+                return Some(ExprAST::Binary{ lhs: Box::new(left.unwrap()), op: String::from(op), rhs: Box::new(rhs.unwrap()) });
+            }
         }
         return left;
     }
 
-    fn make_value(&mut self)->ExprAST{
+    fn make_value(&mut self)->Option<ExprAST>{
         while !matches!(self.current.tokentype(), TokenType::None){
             if matches!(self.current.tokentype(), TokenType::String(_)) || matches!(self.current.tokentype(), TokenType::Boolean(_)) || matches!(self.current.tokentype(), TokenType::Number(_)){
                 let init = self.pop_token();
                 if let TokenType::String(value) = init.tokentype(){
-                    return ExprAST::Variable(value.clone());
+                    return Some(ExprAST::Variable(value.clone()));
                 }else if let TokenType::Number(value) = init.tokentype(){
-                    return ExprAST::Number(value.clone() as f32);
+                    return Some(ExprAST::Number(value.clone() as f32));
                 }
             }else{
                 self.errors.push(format!("Unexpected token: {:?} expecting an string literal or boolean value", &self.current));
