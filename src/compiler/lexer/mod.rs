@@ -79,7 +79,7 @@ impl Lexer{
 		let row = self.row;
 		while self.index < self.data.len(){
             self.current = Character::new(self.data.chars().nth(self.index).unwrap());
-            let important = !self.current.is_whitespace();
+            let important = self.current.is_numeric();
             if important { builder.push(self.current.unwrap()); } else { break; };
             self.index += 1;
 			self.column += 1;
